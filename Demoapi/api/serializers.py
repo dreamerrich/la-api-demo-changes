@@ -7,12 +7,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 User = get_user_model()
 
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ('id', 'username', 'password')
-
 class RegisterSerializer(serializers.ModelSerializer):
   email = serializers.EmailField(
     required=True,
@@ -23,8 +17,7 @@ class RegisterSerializer(serializers.ModelSerializer):
   password2 = serializers.CharField(write_only=True, required=True)
   class Meta:
     model = User
-    fields = ('username', 'password', 'password2',
-         'email', 'first_name', 'last_name')
+    fields = ('username', 'password', 'password2','email', 'first_name', 'last_name')
     extra_kwargs = {
       'first_name': {'required': True},
       'last_name': {'required': True}
@@ -34,6 +27,7 @@ class RegisterSerializer(serializers.ModelSerializer):
       raise serializers.ValidationError(
         {"password": "Password fields didn't match."})
     return attrs
+
   def create(self, validated_data):
     user = User.objects.create(
       username=validated_data['username'],
@@ -45,11 +39,15 @@ class RegisterSerializer(serializers.ModelSerializer):
     user.save()
     return user
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'password')
+
+
 class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField(
-        max_length=128, write_only=True,  required=True)
-    password = serializers.CharField(
-        max_length=128, write_only=True,  required=True)
+    username = serializers.CharField(max_length=128, write_only=True,  required=True)
+    password = serializers.CharField(max_length=128, write_only=True,  required=True)
     token = serializers.CharField(max_length=255, read_only=True)
 
     class Meta:
@@ -57,6 +55,10 @@ class LoginSerializer(serializers.Serializer):
       fields = '__all__'
 
 class projectSerializer(serializers.ModelSerializer):
+  project_name = serializers.CharField(max_length=255)
+  description = serializers.CharField(max_length=255)
+  color = serializers.CharField(max_length=255)
+  
   class Meta:
     model = Project
     fields = '__all__'
