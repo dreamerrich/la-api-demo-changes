@@ -1,9 +1,9 @@
 from django.shortcuts import render
-from rest_framework.views import APIView
 from django.contrib.auth import get_user_model
 from rest_framework.response import Response
 from  .serializers import RegisterSerializer, LoginSerializer, projectSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.generics import CreateAPIView
 from rest_framework.views import APIView
 from rest_framework import generics
 from django.contrib.auth.models import update_last_login
@@ -12,13 +12,15 @@ JWT_PAYLOAD_HANDLER = api_settings.JWT_PAYLOAD_HANDLER
 JWT_ENCODE_HANDLER = api_settings.JWT_ENCODE_HANDLER
 from rest_framework.authtoken.models import Token
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import CustomUser
+from .models import CustomUser,Project
 from django.conf import settings
 from django.contrib.auth import authenticate
 from rest_framework import status
 from django.contrib.auth.models import User
 from rest_framework import viewsets
-
+from rest_framework import filters
+from rest_framework import status
+from django.http import Http404
 
 # Create your views here.
 
@@ -27,7 +29,7 @@ class RegisterAPIView(generics.CreateAPIView):
   permission_classes = (AllowAny,)
   serializer_class = RegisterSerializer
 
-class LoginView(generics.CreateAPIView):
+class LoginView(APIView):
     permission_classes = (AllowAny,)
     serializer_class = LoginSerializer
 
@@ -70,23 +72,76 @@ class LoginView(generics.CreateAPIView):
             else:
                 return Response({"error": 'Your password is not correct please try again or reset your password'}, status=401)
 
-class projectData(viewsets.ViewSet):
+class projectViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated, ]
     serializer_class = projectSerializer
 
-    def create():
-        pass
+    def post(self, request, format=None):
+        serializer = projectSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def get():
-        pass
+    def get(self, request, pk, format=None):
+        queryset = Project.objects.all()
+        serializer = projectSerializer(queryset)
+        return Response(serializer.data)
 
-    def update():
-        pass
+    def retrieve(self, request, pk, format=None):
+        id = pk
+        print("🚀 ~ file: views.py ~ line 22 ~ id", id)
+        if pk is not None:
+          p = Project.objects.get(id=pk)
+          serializer = projectSerializer(p)
+          return Response(serializer.data)
 
-    def partial_update():
-        pass
+    def update(self, request, pk, format=None):
+        id = pk
+        p = Project.objects.all(pk=id)
+        serializer = projectSerializer(p, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message':'Data updated'})
+        return Response({'message':'Data created'}, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete():
-        pass
+    def partial_update(self, request, pk, format=None):
+        id = pk
+        p = Project.objects.all(pk=id)
+        serializer = projectSerializer(p, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message':'Data updated'})
+        return Response(serializer.errors)
+
+    def delete(self, request, pk, format=None):
+        project_data = self.get_object(pk)
+        project_data.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+        
 
 
+class filterSort(APIView):
+    permission_classes = [IsAuthenticated, ]
+
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ["project_name", "color"]
+
+    def filter_queryset(self, queryset):
+
+        for backend in list(self.filter_backends):
+            queryset = backend().filter_queryset(self.request, queryset, self)
+            print("🚀 ~ file: views.py ~ line 21 ~ queryset", queryset)
+            print("🚀 ~ file: views.py ~ line 22 ~ queryset", queryset)
+            return queryset
+
+    def get_queryset(self):
+        user = self.request.user
+        return Project.objects.filter(created_by=user).order_by("created_at")
+        # return Project.objects.filter(created_by=user).order_by("-created_at")
+
+    def get(self, request, format=None):
+        the_filtered_qs = self.filter_queryset(self.get_queryset())
+        serializer = projectSerializer(the_filtered_qs, many=True)
+        print("🚀 ~ file: views.py ~ line 30 ~ serializer", serializer)
+        return Response(serializer.data)
