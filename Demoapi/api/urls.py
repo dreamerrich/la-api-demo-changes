@@ -1,14 +1,10 @@
 from django.urls import path, include
-from .views import RegisterApiView, LoginView, projectViewSet, filterSort
-from rest_framework.routers import DefaultRouter
+from .views import RegisterApiView, LoginView, LoginView,projectListView, projectDetails
 
-router = DefaultRouter()
-router.register(r'details', projectViewSet, basename='project')
 
 urlpatterns = [
     path('register',RegisterApiView.as_view()),
     path('login', LoginView.as_view(), name='login'),
-    path('api/', include(router.urls)),
-    # path('project', projectApiView.as_view()),
-    path('filter', filterSort.as_view()),
+    path('project', projectListView.as_view()),
+    path('details/<int:pk>', projectDetails.as_view()),
 ]

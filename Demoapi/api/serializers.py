@@ -55,10 +55,7 @@ class LoginSerializer(serializers.Serializer):
       fields = '__all__'
 
 class projectSerializer(serializers.ModelSerializer):
-  project_name = serializers.CharField(max_length=255)
-  description = serializers.CharField(max_length=255)
-  color = serializers.CharField(max_length=255)
-  
+  # created_by = serializers.CharField(source="User.username", read_only=True)
   class Meta:
     model = Project
     fields = '__all__'
